@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Perfil - Sistema DVR{% endblock %}
+
+{% block page_title %}Meu Perfil{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-person-circle"></i>
+                        Informações do Perfil
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">
+                                        <i class="bi bi-person"></i>
+                                        Nome
+                                    </label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" 
+                                           value="{{ user.first_name }}" placeholder="Seu nome">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">
+                                        <i class="bi bi-person"></i>
+                                        Sobrenome
+                                    </label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" 
+                                           value="{{ user.last_name }}" placeholder="Seu sobrenome">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">
+                                <i class="bi bi-envelope"></i>
+                                E-mail
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ user.email }}" placeholder="seu@email.com">
+                            <div class="form-text">
+                                Seu e-mail será usado para notificações do sistema
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="username" class="form-label">
+                                <i class="bi bi-person-badge"></i>
+                                Nome de Usuário
+                            </label>
+                            <input type="text" class="form-control" id="username" name="username" 
+                                   value="{{ user.username }}" readonly>
+                            <div class="form-text">
+                                O nome de usuário não pode ser alterado
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Informações da Conta -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        Informações da Conta
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Usuário:</strong></div>
+                        <div class="col-6">{{ user.username }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Status:</strong></div>
+                        <div class="col-6">
+                            {% if user.is_active %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inativo</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Tipo:</strong></div>
+                        <div class="col-6">
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif user.is_staff %}
+                                <span class="badge bg-warning">Staff</span>
+                            {% else %}
+                                <span class="badge bg-info">Usuário</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Membro desde:</strong></div>
+                        <div class="col-6">
+                            <small class="text-muted">{{ user.date_joined|date:"d/m/Y" }}</small>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Último login:</strong></div>
+                        <div class="col-6">
+                            <small class="text-muted">{{ user.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ações Rápidas -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'users:change_password' %}" class="btn btn-outline-warning">
+                            <i class="bi bi-key"></i>
+                            Alterar Senha
+                        </a>
+                        <a href="{% url 'cameras:dashboard' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-house"></i>
+                            Dashboard
+                        </a>
+                        <a href="{% url 'users:logout' %}" class="btn btn-outline-danger">
+                            <i class="bi bi-box-arrow-right"></i>
+                            Sair
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Validação do formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const email = document.getElementById('email').value.trim();
+    const firstName = document.getElementById('first_name').value.trim();
+    const lastName = document.getElementById('last_name').value.trim();
+    
+    if (!firstName) {
+        e.preventDefault();
+        alert('Por favor, informe seu nome.');
+        document.getElementById('first_name').focus();
+        return false;
+    }
+    
+    if (email && !isValidEmail(email)) {
+        e.preventDefault();
+        alert('Por favor, informe um e-mail válido.');
+        document.getElementById('email').focus();
+        return false;
+    }
+});
+
+// Função para validar e-mail
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Auto-save do formulário
+let autoSaveTimeout;
+document.querySelectorAll('input[type="text"], input[type="email"]').forEach(function(input) {
+    input.addEventListener('input', function() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(function() {
+            // Aqui você pode implementar auto-save se necessário
+            console.log('Auto-save triggered');
+        }, 2000);
+    });
+});
+</script>
+{% endblock %} 

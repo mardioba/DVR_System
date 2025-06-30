@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+
+{% block title %}Configurações - {{ camera.name }} - Sistema DVR{% endblock %}
+
+{% block page_title %}Configurações da Câmera{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        Configurações de {{ camera.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary">Detecção de Movimento</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.motion_sensitivity.id_for_label }}" class="form-label">
+                                        Sensibilidade de Movimento
+                                    </label>
+                                    {{ form.motion_sensitivity }}
+                                    <div class="form-text">
+                                        Valores mais baixos detectam movimentos menores (0.1 - 1.0)
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.motion_timeout.id_for_label }}" class="form-label">
+                                        Timeout de Movimento (segundos)
+                                    </label>
+                                    {{ form.motion_timeout }}
+                                    <div class="form-text">
+                                        Tempo para considerar que o movimento parou
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.motion_start_delay.id_for_label }}" class="form-label">
+                                        Delay de Início (segundos)
+                                    </label>
+                                    {{ form.motion_start_delay }}
+                                    <div class="form-text">
+                                        Aguardar antes de iniciar a gravação
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-success">Qualidade de Vídeo</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.recording_quality.id_for_label }}" class="form-label">
+                                        Qualidade da Gravação
+                                    </label>
+                                    {{ form.recording_quality }}
+                                    <div class="form-text">
+                                        Qualidade do vídeo gravado
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.frame_rate.id_for_label }}" class="form-label">
+                                        Taxa de Frames (FPS)
+                                    </label>
+                                    {{ form.frame_rate }}
+                                    <div class="form-text">
+                                        Frames por segundo (1-30)
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.resolution_width.id_for_label }}" class="form-label">
+                                                Largura da Resolução
+                                            </label>
+                                            {{ form.resolution_width }}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.resolution_height.id_for_label }}" class="form-label">
+                                                Altura da Resolução
+                                            </label>
+                                            {{ form.resolution_height }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.recording_duration.id_for_label }}" class="form-label">
+                                        Duração da Gravação (segundos)
+                                    </label>
+                                    {{ form.recording_duration }}
+                                    <div class="form-text">
+                                        Duração máxima de cada gravação
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'cameras:camera_detail' camera.id %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i>
+                                Salvar Configurações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Informações da Câmera -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-camera-video"></i>
+                        Informações da Câmera
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Nome:</strong></div>
+                        <div class="col-6">{{ camera.name }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>IP:</strong></div>
+                        <div class="col-6"><code>{{ camera.ip_address }}</code></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Status:</strong></div>
+                        <div class="col-6">
+                            {% if camera.status == 'online' %}
+                                <span class="badge bg-success">Online</span>
+                            {% elif camera.status == 'offline' %}
+                                <span class="badge bg-danger">Offline</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ camera.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Tipo:</strong></div>
+                        <div class="col-6">
+                            <span class="badge bg-info">{{ camera.get_camera_type_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Configurações Recomendadas -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightbulb"></i>
+                        Configurações Recomendadas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-success">Para Detecção Precisa:</h6>
+                        <ul class="small text-muted">
+                            <li>Sensibilidade: 0.3 - 0.5</li>
+                            <li>Timeout: 3 - 5 segundos</li>
+                            <li>Delay: 2 - 5 segundos</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-info">Para Qualidade Alta:</h6>
+                        <ul class="small text-muted">
+                            <li>Resolução: 1920x1080</li>
+                            <li>Frame Rate: 15-25 FPS</li>
+                            <li>Qualidade: High</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6 class="text-warning">Para Economia de Espaço:</h6>
+                        <ul class="small text-muted">
+                            <li>Resolução: 1280x720</li>
+                            <li>Frame Rate: 10-15 FPS</li>
+                            <li>Qualidade: Medium</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-preenchimento de valores recomendados
+document.addEventListener('DOMContentLoaded', function() {
+    // Botão para configuração de detecção precisa
+    const preciseBtn = document.createElement('button');
+    preciseBtn.className = 'btn btn-sm btn-outline-success mb-2';
+    preciseBtn.innerHTML = '<i class="bi bi-target"></i> Detecção Precisa';
+    preciseBtn.onclick = function() {
+        document.getElementById('{{ form.motion_sensitivity.id_for_label }}').value = '0.3';
+        document.getElementById('{{ form.motion_timeout.id_for_label }}').value = '4';
+        document.getElementById('{{ form.motion_start_delay.id_for_label }}').value = '3';
+    };
+    
+    // Botão para qualidade alta
+    const qualityBtn = document.createElement('button');
+    qualityBtn.className = 'btn btn-sm btn-outline-info mb-2';
+    qualityBtn.innerHTML = '<i class="bi bi-star"></i> Qualidade Alta';
+    qualityBtn.onclick = function() {
+        document.getElementById('{{ form.resolution_width.id_for_label }}').value = '1920';
+        document.getElementById('{{ form.resolution_height.id_for_label }}').value = '1080';
+        document.getElementById('{{ form.frame_rate.id_for_label }}').value = '20';
+        document.getElementById('{{ form.recording_quality.id_for_label }}').value = 'high';
+    };
+    
+    // Botão para economia de espaço
+    const economyBtn = document.createElement('button');
+    economyBtn.className = 'btn btn-sm btn-outline-warning';
+    economyBtn.innerHTML = '<i class="bi bi-hdd"></i> Economia de Espaço';
+    economyBtn.onclick = function() {
+        document.getElementById('{{ form.resolution_width.id_for_label }}').value = '1280';
+        document.getElementById('{{ form.resolution_height.id_for_label }}').value = '720';
+        document.getElementById('{{ form.frame_rate.id_for_label }}').value = '12';
+        document.getElementById('{{ form.recording_quality.id_for_label }}').value = 'medium';
+    };
+    
+    // Adicionar botões ao card de recomendações
+    const recommendationsCard = document.querySelector('.card:last-child .card-body');
+    recommendationsCard.appendChild(preciseBtn);
+    recommendationsCard.appendChild(qualityBtn);
+    recommendationsCard.appendChild(economyBtn);
+});
+
+// Validação do formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const sensitivity = parseFloat(document.getElementById('{{ form.motion_sensitivity.id_for_label }}').value);
+    const frameRate = parseInt(document.getElementById('{{ form.frame_rate.id_for_label }}').value);
+    
+    if (sensitivity < 0.1 || sensitivity > 1.0) {
+        e.preventDefault();
+        alert('A sensibilidade deve estar entre 0.1 e 1.0');
+        return false;
+    }
+    
+    if (frameRate < 1 || frameRate > 30) {
+        e.preventDefault();
+        alert('A taxa de frames deve estar entre 1 e 30 FPS');
+        return false;
+    }
+});
+</script>
+{% endblock %} 

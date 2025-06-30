@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ camera.name }} - Visualização ao Vivo{% endblock %}
+{% block page_title %}{{ camera.name }} - Ao Vivo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-camera-video"></i>
+                    Visualização ao Vivo
+                </h6>
+                <div class="d-flex">
+                    <span class="badge bg-{% if camera.status == 'online' %}success{% elif camera.status == 'offline' %}danger{% else %}warning{% endif %} me-2">
+                        {{ camera.get_status_display }}
+                    </span>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary" onclick="toggleFullscreen()">
+                            <i class="bi bi-fullscreen"></i>
+                        </button>
+                        <button class="btn btn-outline-success" onclick="startRecording()">
+                            <i class="bi bi-record-circle"></i>
+                        </button>
+                        <button class="btn btn-outline-info" onclick="takeSnapshot()">
+                            <i class="bi bi-camera"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="videoContainer" class="position-relative">
+                    <img id="liveStream" 
+                         src="{% url 'cameras:camera_stream' camera.id %}" 
+                         class="img-fluid w-100" 
+                         alt="{{ camera.name }}"
+                         style="min-height: 400px; object-fit: contain;">
+                    
+                    <!-- Overlay de status -->
+                    <div id="statusOverlay" class="position-absolute top-0 start-0 p-3">
+                        <div class="bg-dark bg-opacity-75 text-white p-2 rounded">
+                            <small>
+                                <i class="bi bi-clock"></i> 
+                                <span id="currentTime"></span>
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Indicador de gravação -->
+                    <div id="recordingIndicator" class="position-absolute top-0 end-0 p-3" style="display: none;">
+                        <div class="bg-danger text-white p-2 rounded">
+                            <i class="bi bi-record-circle"></i> Gravando
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Informações da Câmera -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-info-circle"></i>
+                    Informações da Câmera
+                </h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Nome:</strong></td>
+                        <td>{{ camera.name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>IP:</strong></td>
+                        <td>{{ camera.ip_address }}:{{ camera.port }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tipo:</strong></td>
+                        <td>{{ camera.get_camera_type_display }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Status:</strong></td>
+                        <td>
+                            <span class="badge bg-{% if camera.status == 'online' %}success{% elif camera.status == 'offline' %}danger{% else %}warning{% endif %}">
+                                {{ camera.get_status_display }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Última Conexão:</strong></td>
+                        <td>
+                            {% if camera.last_seen %}
+                            {{ camera.last_seen|date:"d/m/Y H:i" }}
+                            {% else %}
+                            <span class="text-muted">Nunca</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Controles -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-sliders"></i>
+                    Controles
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'cameras:camera_manual_recording' camera.id %}" 
+                       class="btn btn-danger">
+                        <i class="bi bi-record-circle"></i> Gravação Manual
+                    </a>
+                    <a href="{% url 'cameras:camera_settings' camera.id %}" 
+                       class="btn btn-warning">
+                        <i class="bi bi-gear"></i> Configurações
+                    </a>
+                    <a href="{% url 'cameras:camera_edit' camera.id %}" 
+                       class="btn btn-info">
+                        <i class="bi bi-pencil"></i> Editar Câmera
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Configurações de Detecção -->
+        {% if camera.settings %}
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-activity"></i>
+                    Detecção de Movimento
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" 
+                           {% if camera.motion_detection_enabled %}checked{% endif %} 
+                           id="motionDetection" disabled>
+                    <label class="form-check-label" for="motionDetection">
+                        Habilitada
+                    </label>
+                </div>
+                
+                <div class="mt-3">
+                    <label class="form-label">Sensibilidade</label>
+                    <input type="range" class="form-range" 
+                           value="{{ camera.settings.motion_sensitivity|floatformat:1 }}" 
+                           min="0.1" max="1.0" step="0.1" disabled>
+                    <small class="text-muted">{{ camera.settings.motion_sensitivity|floatformat:1 }}</small>
+                </div>
+                
+                <div class="mt-3">
+                    <label class="form-label">Duração da Gravação</label>
+                    <input type="range" class="form-range" 
+                           value="{{ camera.settings.recording_duration }}" 
+                           min="10" max="300" step="10" disabled>
+                    <small class="text-muted">{{ camera.settings.recording_duration }} segundos</small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal de Gravação Manual -->
+<div class="modal fade" id="recordingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Gravação Manual</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="recordingForm">
+                    <div class="mb-3">
+                        <label for="recordingDuration" class="form-label">Duração (segundos)</label>
+                        <input type="number" class="form-control" id="recordingDuration" 
+                               value="30" min="10" max="300">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmRecording()">
+                    <i class="bi bi-record-circle"></i> Iniciar Gravação
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Atualizar hora atual
+function updateTime() {
+    const now = new Date();
+    document.getElementById('currentTime').textContent = now.toLocaleTimeString('pt-BR');
+}
+
+setInterval(updateTime, 1000);
+updateTime();
+
+// Toggle fullscreen
+function toggleFullscreen() {
+    const videoContainer = document.getElementById('videoContainer');
+    if (!document.fullscreenElement) {
+        videoContainer.requestFullscreen().catch(err => {
+            console.log('Erro ao entrar em fullscreen:', err);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+// Iniciar gravação manual
+function startRecording() {
+    const modal = new bootstrap.Modal(document.getElementById('recordingModal'));
+    modal.show();
+}
+
+// Confirmar gravação
+function confirmRecording() {
+    const duration = document.getElementById('recordingDuration').value;
+    
+    fetch(`{% url 'cameras:camera_manual_recording' camera.id %}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `duration=${duration}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showRecordingIndicator();
+            bootstrap.Modal.getInstance(document.getElementById('recordingModal')).hide();
+        } else {
+            alert('Erro ao iniciar gravação: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao iniciar gravação');
+    });
+}
+
+// Mostrar indicador de gravação
+function showRecordingIndicator() {
+    const indicator = document.getElementById('recordingIndicator');
+    indicator.style.display = 'block';
+    
+    setTimeout(() => {
+        indicator.style.display = 'none';
+    }, 5000);
+}
+
+// Capturar snapshot
+function takeSnapshot() {
+    const canvas = document.createElement('canvas');
+    const video = document.getElementById('liveStream');
+    const ctx = canvas.getContext('2d');
+    
+    canvas.width = video.videoWidth || video.naturalWidth;
+    canvas.height = video.videoHeight || video.naturalHeight;
+    
+    ctx.drawImage(video, 0, 0);
+    
+    // Download da imagem
+    const link = document.createElement('a');
+    link.download = `snapshot_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+}
+
+// Verificar status da câmera periodicamente
+setInterval(() => {
+    fetch(`{% url 'cameras:api_camera_status' camera.id %}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({status: 'check'})
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Atualizar status se necessário
+        console.log('Status da câmera:', data);
+    })
+    .catch(error => {
+        console.error('Erro ao verificar status:', error);
+    });
+}, 30000); // Verificar a cada 30 segundos
+</script>
+{% endblock %} 

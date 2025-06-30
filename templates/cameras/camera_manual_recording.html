@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block title %}Gravação Manual - {{ camera.name }} - Sistema DVR{% endblock %}
+
+{% block page_title %}Gravação Manual{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-record-circle"></i>
+                        Gravação Manual - {{ camera.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-info-circle"></i>
+                            Como funciona a gravação manual?
+                        </h6>
+                        <p class="mb-0">
+                            A gravação manual permite iniciar uma gravação de vídeo da câmera por um período específico, 
+                            independentemente da detecção de movimento. A gravação será salva automaticamente após o tempo definido.
+                        </p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="duration" class="form-label">
+                                        <i class="bi bi-clock"></i>
+                                        Duração da Gravação
+                                    </label>
+                                    <select class="form-select" id="duration" name="duration" required>
+                                        <option value="30">30 segundos</option>
+                                        <option value="60">1 minuto</option>
+                                        <option value="300">5 minutos</option>
+                                        <option value="600">10 minutos</option>
+                                        <option value="1800">30 minutos</option>
+                                        <option value="3600">1 hora</option>
+                                    </select>
+                                    <div class="form-text">
+                                        Tempo que a gravação será executada
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <i class="bi bi-camera-video"></i>
+                                        Status da Câmera
+                                    </label>
+                                    <div class="d-block">
+                                        {% if camera.status == 'online' %}
+                                            <span class="badge bg-success fs-6">Online</span>
+                                            <small class="text-muted d-block mt-1">Câmera disponível para gravação</small>
+                                        {% elif camera.status == 'offline' %}
+                                            <span class="badge bg-danger fs-6">Offline</span>
+                                            <small class="text-muted d-block mt-1">Câmera não está disponível</small>
+                                        {% else %}
+                                            <span class="badge bg-warning fs-6">{{ camera.status }}</span>
+                                            <small class="text-muted d-block mt-1">Câmera com problemas</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-gear"></i>
+                                Configurações de Gravação
+                            </label>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title">Resolução</h6>
+                                            <p class="card-text">{{ camera.settings.resolution_width }}x{{ camera.settings.resolution_height }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title">Frame Rate</h6>
+                                            <p class="card-text">{{ camera.settings.frame_rate }} FPS</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title">Qualidade</h6>
+                                            <p class="card-text">{{ camera.settings.recording_quality|title }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Importante
+                            </h6>
+                            <ul class="mb-0">
+                                <li>A gravação será iniciada imediatamente após confirmar</li>
+                                <li>O arquivo será salvo automaticamente após o tempo definido</li>
+                                <li>Você pode visualizar a gravação na seção de gravações</li>
+                                <li>Gravações muito longas podem consumir muito espaço em disco</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'cameras:camera_detail' camera.id %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger" 
+                                    {% if camera.status != 'online' %}disabled{% endif %}>
+                                <i class="bi bi-record-circle"></i>
+                                Iniciar Gravação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Informações da Câmera -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-camera-video"></i>
+                        Informações da Câmera
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Nome:</strong></div>
+                        <div class="col-6">{{ camera.name }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>IP:</strong></div>
+                        <div class="col-6"><code>{{ camera.ip_address }}</code></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Tipo:</strong></div>
+                        <div class="col-6">
+                            <span class="badge bg-info">{{ camera.get_camera_type_display }}</span>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Gravação:</strong></div>
+                        <div class="col-6">
+                            {% if camera.recording_enabled %}
+                                <span class="badge bg-success">Habilitada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Desabilitada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Histórico de Gravações -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-clock-history"></i>
+                        Últimas Gravações
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-3">
+                        <i class="bi bi-record-circle display-4 text-muted"></i>
+                        <p class="text-muted mt-2">Nenhuma gravação encontrada</p>
+                        <small class="text-muted">As gravações manuais aparecerão aqui</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Atualizar duração em tempo real
+document.getElementById('duration').addEventListener('change', function() {
+    const duration = parseInt(this.value);
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    
+    let timeText = '';
+    if (minutes > 0) {
+        timeText = `${minutes} minuto${minutes > 1 ? 's' : ''}`;
+        if (seconds > 0) {
+            timeText += ` e ${seconds} segundo${seconds > 1 ? 's' : ''}`;
+        }
+    } else {
+        timeText = `${seconds} segundo${seconds > 1 ? 's' : ''}`;
+    }
+    
+    // Atualizar texto de ajuda
+    const helpText = this.parentNode.querySelector('.form-text');
+    helpText.textContent = `Tempo que a gravação será executada (${timeText})`;
+});
+
+// Confirmação antes de iniciar gravação
+document.querySelector('form').addEventListener('submit', function(e) {
+    const duration = parseInt(document.getElementById('duration').value);
+    const minutes = Math.floor(duration / 60);
+    const seconds = duration % 60;
+    
+    let timeText = '';
+    if (minutes > 0) {
+        timeText = `${minutes} minuto${minutes > 1 ? 's' : ''}`;
+        if (seconds > 0) {
+            timeText += ` e ${seconds} segundo${seconds > 1 ? 's' : ''}`;
+        }
+    } else {
+        timeText = `${seconds} segundo${seconds > 1 ? 's' : ''}`;
+    }
+    
+    const confirmed = confirm(`Tem certeza que deseja iniciar uma gravação manual de ${timeText} para a câmera "${cameraName}"?`);
+    
+    if (!confirmed) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Mostrar loading
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Iniciando...';
+    submitBtn.disabled = true;
+    
+    // Restaurar botão após 5 segundos (caso haja erro)
+    setTimeout(function() {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 5000);
+});
+
+// Variável para o nome da câmera (será definida pelo template)
+const cameraName = '{{ camera.name }}';
+</script>
+{% endblock %} 

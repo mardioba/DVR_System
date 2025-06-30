@@ -1,0 +1,154 @@
+version: '3.8'
+
+services:
+  # Banco de dados PostgreSQL
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_NAME:-dvr_system}
+      POSTGRES_USER: ${DB_USER:-dvr_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dvr_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dvr_user}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis para Celery
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Aplicação Django
+  web:
+    build: .
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      - DATABASE_URL=postgresql://${DB_USER:-dvr_user}:${DB_PASSWORD:-dvr_password}@db:5432/${DB_NAME:-dvr_system}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - RECORDINGS_PATH=/app/recordings
+      - MAX_RECORDING_DAYS=${MAX_RECORDING_DAYS:-30}
+      - MOTION_DETECTION_SENSITIVITY=${MOTION_DETECTION_SENSITIVITY:-0.3}
+      - RECORDING_DURATION=${RECORDING_DURATION:-30}
+      - MOTION_TIMEOUT=${MOTION_TIMEOUT:-4}
+      - MOTION_START_DELAY=${MOTION_START_DELAY:-10}
+      - FRAME_RATE=${FRAME_RATE:-15}
+    volumes:
+      - ./recordings:/app/recordings
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  # Celery Worker
+  celery:
+    build: .
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://${DB_USER:-dvr_user}:${DB_PASSWORD:-dvr_password}@db:5432/${DB_NAME:-dvr_system}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - RECORDINGS_PATH=/app/recordings
+    volumes:
+      - ./recordings:/app/recordings
+      - ./media:/app/media
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    command: celery -A dvr_system worker -l info
+
+  # Celery Beat (agendador)
+  celery-beat:
+    build: .
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://${DB_USER:-dvr_user}:${DB_PASSWORD:-dvr_password}@db:5432/${DB_NAME:-dvr_system}
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - RECORDINGS_PATH=/app/recordings
+    volumes:
+      - ./recordings:/app/recordings
+      - ./media:/app/media
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    command: celery -A dvr_system beat -l info
+
+  # Nginx (proxy reverso)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./staticfiles:/app/staticfiles
+      - ./media:/app/media
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  # Monitoramento (opcional)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data: 

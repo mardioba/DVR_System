@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Câmeras - Sistema DVR{% endblock %}
+{% block page_title %}Câmeras{% endblock %}
+
+{% block content %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-white">
+            <i class="bi bi-camera"></i>
+            Lista de Câmeras
+        </h6>
+        <a href="{% url 'cameras:camera_create' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus"></i> Nova Câmera
+        </a>
+    </div>
+    <div class="card-body">
+        {% if cameras %}
+        <div class="table-responsive">
+            <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>IP</th>
+                        <th>Tipo</th>
+                        <th>Status</th>
+                        <th>Última Conexão</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for camera in cameras %}
+                    <tr>
+                        <td>
+                            <strong>{{ camera.name }}</strong>
+                            {% if camera.description %}
+                            <br><small class="text-muted">{{ camera.description }}</small>
+                            {% endif %}
+                        </td>
+                        <td>{{ camera.ip_address }}:{{ camera.port }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ camera.get_camera_type_display }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if camera.status == 'online' %}success{% elif camera.status == 'offline' %}danger{% else %}warning{% endif %}">
+                                {{ camera.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if camera.last_seen %}
+                            {{ camera.last_seen|date:"d/m/Y H:i" }}
+                            {% else %}
+                            <span class="text-muted">Nunca</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'cameras:camera_live_view' camera.id %}" 
+                                   class="btn btn-outline-primary" title="Visualizar">
+                                    <i class="bi bi-play"></i>
+                                </a>
+                                <a href="{% url 'cameras:camera_detail' camera.id %}" 
+                                   class="btn btn-outline-info" title="Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'cameras:camera_edit' camera.id %}" 
+                                   class="btn btn-outline-warning" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'cameras:camera_delete' camera.id %}" 
+                                   class="btn btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-camera-video-off fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhuma câmera encontrada</h5>
+            <p class="text-muted">Comece adicionando sua primeira câmera.</p>
+            <a href="{% url 'cameras:camera_create' %}" class="btn btn-primary">
+                <i class="bi bi-plus"></i> Adicionar Câmera
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#dataTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese-Brasil.json"
+        }
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Sistema DVR{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-camera"></i>
+                    {{ title }}
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    {{ form.name.label }}
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.camera_type.id_for_label }}" class="form-label">
+                                    {{ form.camera_type.label }}
+                                </label>
+                                {{ form.camera_type }}
+                                {% if form.camera_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.camera_type.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.description.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.ip_address.id_for_label }}" class="form-label">
+                                    {{ form.ip_address.label }}
+                                </label>
+                                {{ form.ip_address }}
+                                {% if form.ip_address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.ip_address.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.port.id_for_label }}" class="form-label">
+                                    {{ form.port.label }}
+                                </label>
+                                {{ form.port }}
+                                {% if form.port.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.port.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.stream_url.id_for_label }}" class="form-label">
+                            {{ form.stream_url.label }}
+                        </label>
+                        {{ form.stream_url }}
+                        <div class="form-text">
+                            Exemplo: rtsp://192.168.1.100:554/stream1
+                        </div>
+                        {% if form.stream_url.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.stream_url.errors.0 }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.username.id_for_label }}" class="form-label">
+                                    {{ form.username.label }}
+                                </label>
+                                {{ form.username }}
+                                {% if form.username.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.username.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.password.id_for_label }}" class="form-label">
+                                    {{ form.password.label }}
+                                </label>
+                                {{ form.password }}
+                                {% if form.password.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password.errors.0 }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        {{ form.is_active.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.motion_detection_enabled }}
+                                    <label class="form-check-label" for="{{ form.motion_detection_enabled.id_for_label }}">
+                                        {{ form.motion_detection_enabled.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.recording_enabled }}
+                                    <label class="form-check-label" for="{{ form.recording_enabled.id_for_label }}">
+                                        {{ form.recording_enabled.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'cameras:camera_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Salvar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-preenchimento da URL do stream baseado no IP e porta
+document.getElementById('{{ form.ip_address.id_for_label }}').addEventListener('change', function() {
+    const ip = this.value;
+    const port = document.getElementById('{{ form.port.id_for_label }}').value;
+    const cameraType = document.getElementById('{{ form.camera_type.id_for_label }}').value;
+    
+    if (ip && port) {
+        let streamUrl = '';
+        switch(cameraType) {
+            case 'rtsp':
+                streamUrl = `rtsp://${ip}:${port}/stream1`;
+                break;
+            case 'http':
+                streamUrl = `http://${ip}:${port}/video`;
+                break;
+            case 'rtmp':
+                streamUrl = `rtmp://${ip}:${port}/live/stream`;
+                break;
+        }
+        document.getElementById('{{ form.stream_url.id_for_label }}').value = streamUrl;
+    }
+});
+
+document.getElementById('{{ form.port.id_for_label }}').addEventListener('change', function() {
+    document.getElementById('{{ form.ip_address.id_for_label }}').dispatchEvent(new Event('change'));
+});
+
+document.getElementById('{{ form.camera_type.id_for_label }}').addEventListener('change', function() {
+    document.getElementById('{{ form.ip_address.id_for_label }}').dispatchEvent(new Event('change'));
+});
+</script>
+{% endblock %} 

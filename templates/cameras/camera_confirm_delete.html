@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Excluir Câmera - Sistema DVR{% endblock %}
+
+{% block page_title %}Excluir Câmera{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Confirmar Exclusão
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-trash display-1 text-danger"></i>
+                        <h4 class="mt-3 text-danger">Tem certeza?</h4>
+                        <p class="text-muted">
+                            Esta ação não pode ser desfeita. A câmera e todas as suas gravações serão permanentemente removidas.
+                        </p>
+                    </div>
+                    
+                    <!-- Informações da Câmera -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="bi bi-camera-video"></i>
+                                Câmera a ser Excluída
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nome:</strong>
+                                    <p class="mb-2">{{ camera.name }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>IP:</strong>
+                                    <p class="mb-2"><code>{{ camera.ip_address }}</code></p>
+                                </div>
+                            </div>
+                            
+                            {% if camera.description %}
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>Descrição:</strong>
+                                    <p class="mb-2">{{ camera.description }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Status:</strong>
+                                    <p class="mb-2">
+                                        {% if camera.status == 'online' %}
+                                            <span class="badge bg-success">Online</span>
+                                        {% elif camera.status == 'offline' %}
+                                            <span class="badge bg-danger">Offline</span>
+                                        {% elif camera.status == 'error' %}
+                                            <span class="badge bg-warning">Erro</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Desconectado</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Tipo:</strong>
+                                    <p class="mb-2">
+                                        <span class="badge bg-info">{{ camera.get_camera_type_display }}</span>
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Criada em:</strong>
+                                    <p class="mb-2">
+                                        <small class="text-muted">{{ camera.created_at|date:"d/m/Y H:i" }}</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Avisos Importantes -->
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Atenção!
+                        </h6>
+                        <ul class="mb-0">
+                            <li>Todas as gravações associadas a esta câmera serão perdidas</li>
+                            <li>As configurações personalizadas serão removidas</li>
+                            <li>Esta ação não pode ser desfeita</li>
+                            <li>Se a câmera estiver ativa, ela será desconectada</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Formulário de Confirmação -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'cameras:camera_detail' camera.id %}" class="btn btn-secondary me-md-2">
+                                <i class="bi bi-arrow-left"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash"></i>
+                                Sim, Excluir Câmera
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Informações Adicionais -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-info-circle"></i>
+                        O que acontece após a exclusão?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">Será Removido:</h6>
+                            <ul class="text-muted">
+                                <li>Registro da câmera no banco de dados</li>
+                                <li>Todas as gravações de vídeo</li>
+                                <li>Configurações personalizadas</li>
+                                <li>Histórico de eventos</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-info">Será Mantido:</h6>
+                            <ul class="text-muted">
+                                <li>Logs do sistema</li>
+                                <li>Outras câmeras</li>
+                                <li>Configurações gerais</li>
+                                <li>Usuários e permissões</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Confirmação adicional antes de enviar o formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const confirmed = confirm('ATENÇÃO: Esta ação é irreversível!\n\nTem certeza absoluta que deseja excluir a câmera "{{ camera.name }}"?\n\nTodas as gravações e configurações serão perdidas permanentemente.');
+    
+    if (!confirmed) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Mostrar loading
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Excluindo...';
+    submitBtn.disabled = true;
+    
+    // Restaurar botão após 5 segundos (caso haja erro)
+    setTimeout(function() {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 5000);
+});
+
+// Prevenir navegação acidental
+window.addEventListener('beforeunload', function(e) {
+    if (document.querySelector('form').checkValidity()) {
+        e.preventDefault();
+        e.returnValue = 'Você tem alterações não salvas. Tem certeza que deseja sair?';
+    }
+});
+</script>
+{% endblock %} 

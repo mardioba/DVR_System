@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ camera.name }} - Sistema DVR{% endblock %}
+
+{% block page_title %}{{ camera.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Informações da Câmera -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-camera-video"></i>
+                        Informações da Câmera
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'cameras:camera_edit' camera.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'cameras:camera_delete' camera.id %}" class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('Tem certeza que deseja excluir esta câmera?')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Status:</strong>
+                        </div>
+                        <div class="col-6">
+                            {% if camera.status == 'online' %}
+                                <span class="badge bg-success">Online</span>
+                            {% elif camera.status == 'offline' %}
+                                <span class="badge bg-danger">Offline</span>
+                            {% elif camera.status == 'error' %}
+                                <span class="badge bg-warning">Erro</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Desconectado</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>IP:</strong>
+                        </div>
+                        <div class="col-6">
+                            <code>{{ camera.ip_address }}</code>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Porta:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ camera.port }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Tipo:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="badge bg-info">{{ camera.get_camera_type_display }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if camera.description %}
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <strong>Descrição:</strong>
+                            <p class="mb-0">{{ camera.description }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Detecção de Movimento:</strong>
+                        </div>
+                        <div class="col-6">
+                            {% if camera.motion_detection_enabled %}
+                                <span class="badge bg-success">Habilitada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Desabilitada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Gravação:</strong>
+                        </div>
+                        <div class="col-6">
+                            {% if camera.recording_enabled %}
+                                <span class="badge bg-success">Habilitada</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Desabilitada</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if camera.last_seen %}
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Última Conexão:</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">{{ camera.last_seen|date:"d/m/Y H:i" }}</small>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <strong>Criada em:</strong>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">{{ camera.created_at|date:"d/m/Y H:i" }}</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ações Rápidas -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="bi bi-lightning"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'cameras:camera_live_view' camera.id %}" class="btn btn-primary">
+                            <i class="bi bi-play-circle"></i>
+                            Visualizar ao Vivo
+                        </a>
+                        <a href="{% url 'cameras:camera_settings' camera.id %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-gear"></i>
+                            Configurações
+                        </a>
+                        <a href="{% url 'cameras:camera_manual_recording' camera.id %}" class="btn btn-outline-warning">
+                            <i class="bi bi-record-circle"></i>
+                            Gravação Manual
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Stream da Câmera -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-camera-video"></i>
+                        Stream ao Vivo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if camera.status == 'online' %}
+                        <div class="text-center">
+                            <img src="{% url 'cameras:camera_stream' camera.id %}" 
+                                 class="img-fluid rounded" 
+                                 alt="Stream da câmera {{ camera.name }}"
+                                 style="max-width: 100%; height: auto;">
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-camera-video-off display-1 text-muted"></i>
+                            <h4 class="mt-3 text-muted">Câmera Offline</h4>
+                            <p class="text-muted">
+                                A câmera não está disponível no momento. 
+                                Verifique a conexão e tente novamente.
+                            </p>
+                            <button class="btn btn-primary" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Tentar Novamente
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Configurações da Câmera -->
+    {% if camera.settings %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-gear"></i>
+                        Configurações Atuais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Sensibilidade</h6>
+                                <div class="display-6 text-primary">{{ camera.settings.motion_sensitivity }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Frame Rate</h6>
+                                <div class="display-6 text-info">{{ camera.settings.frame_rate }} fps</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Resolução</h6>
+                                <div class="display-6 text-success">{{ camera.settings.resolution_width }}x{{ camera.settings.resolution_height }}</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h6>Duração Gravação</h6>
+                                <div class="display-6 text-warning">{{ camera.settings.recording_duration }}s</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Últimas Gravações -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-record-circle"></i>
+                        Últimas Gravações
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="bi bi-record-circle display-1 text-muted"></i>
+                        <h4 class="mt-3 text-muted">Nenhuma gravação encontrada</h4>
+                        <p class="text-muted">
+                            As gravações aparecerão aqui quando houver detecção de movimento.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-refresh da página a cada 30 segundos para atualizar o status
+setTimeout(function() {
+    location.reload();
+}, 30000);
+
+// Função para testar conexão com a câmera
+function testConnection() {
+    fetch(`/api/cameras/${cameraId}/status/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            status: 'online'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao testar conexão:', error);
+    });
+}
+
+// Variável para o ID da câmera (será definida pelo template)
+const cameraId = '{{ camera.id }}';
+</script>
+{% endblock %} 

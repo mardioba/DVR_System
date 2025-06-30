@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Adicionar Câmera Descoberta - Sistema DVR{% endblock %}
+
+{% block page_title %}Adicionar Câmera Descoberta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i>
+                        Adicionar Câmera ao Sistema
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Informações da Câmera Descoberta</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Fabricante:</th>
+                                        <td>{{ discovery.manufacturer|default:"Desconhecido" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Modelo:</th>
+                                        <td>{{ discovery.model|default:"Desconhecido" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Endereço IP:</th>
+                                        <td><code>{{ discovery.ip_address }}</code></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Porta:</th>
+                                        <td>{{ discovery.port|default:"80" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Número de Série:</th>
+                                        <td>{{ discovery.serial_number|default:"Não informado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Firmware:</th>
+                                        <td>{{ discovery.firmware_version|default:"Não informado" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>URL ONVIF:</th>
+                                        <td>
+                                            {% if discovery.onvif_url %}
+                                                <span class="badge bg-success">ONVIF</span>
+                                                <small class="text-muted d-block">{{ discovery.onvif_url }}</small>
+                                            {% else %}
+                                                <span class="badge bg-warning">Não ONVIF</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>URL RTSP:</th>
+                                        <td>
+                                            {% if discovery.rtsp_url %}
+                                                <span class="badge bg-info">RTSP</span>
+                                                <small class="text-muted d-block">{{ discovery.rtsp_url }}</small>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Não RTSP</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Descoberto em:</th>
+                                        <td>{{ discovery.discovered_at|date:"d/m/Y H:i" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-success">Configuração da Câmera</h6>
+                            <form method="post">
+                                {% csrf_token %}
+                                <div class="mb-3">
+                                    <label for="camera_name" class="form-label">Nome da Câmera</label>
+                                    <input type="text" class="form-control" id="camera_name" name="camera_name" 
+                                           value="{{ discovery.manufacturer|default:'' }} {{ discovery.model|default:'' }}" 
+                                           required>
+                                    <div class="form-text">Nome que será exibido no sistema</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Descrição (opcional)</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3"
+                                              placeholder="Descrição da localização ou propósito da câmera"></textarea>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="username" class="form-label">Usuário (opcional)</label>
+                                            <input type="text" class="form-control" id="username" name="username" 
+                                                   placeholder="usuário">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="password" class="form-label">Senha (opcional)</label>
+                                            <input type="password" class="form-control" id="password" name="password" 
+                                                   placeholder="senha">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="stream_url" class="form-label">URL do Stream</label>
+                                    <input type="url" class="form-control" id="stream_url" name="stream_url" 
+                                           value="{{ discovery.rtsp_url|default:'' }}" required>
+                                    <div class="form-text">URL para acessar o stream de vídeo da câmera</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="camera_type" class="form-label">Tipo de Câmera</label>
+                                            <select class="form-select" id="camera_type" name="camera_type">
+                                                <option value="onvif" {% if discovery.onvif_url %}selected{% endif %}>ONVIF</option>
+                                                <option value="rtsp" {% if discovery.rtsp_url and not discovery.onvif_url %}selected{% endif %}>RTSP</option>
+                                                <option value="http">HTTP</option>
+                                                <option value="rtmp">RTMP</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="port" class="form-label">Porta</label>
+                                            <input type="number" class="form-control" id="port" name="port" 
+                                                   value="{{ discovery.port|default:80 }}" min="1" max="65535">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="motion_detection" name="motion_detection" checked>
+                                    <label class="form-check-label" for="motion_detection">
+                                        Habilitar Detecção de Movimento
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="recording_enabled" name="recording_enabled" checked>
+                                    <label class="form-check-label" for="recording_enabled">
+                                        Habilitar Gravação
+                                    </label>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <a href="{% url 'cameras:camera_discovery' %}" class="btn btn-secondary me-md-2">
+                                        <i class="bi bi-arrow-left"></i>
+                                        Voltar
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-plus-circle"></i>
+                                        Adicionar Câmera
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-preenchimento de campos baseado na descoberta
+document.addEventListener('DOMContentLoaded', function() {
+    // Preencher nome da câmera se estiver vazio
+    const cameraName = document.getElementById('camera_name');
+    if (!cameraName.value.trim()) {
+        cameraName.value = '{{ discovery.manufacturer|default:"" }} {{ discovery.model|default:"" }}'.trim();
+    }
+    
+    // Preencher URL do stream se estiver vazio
+    const streamUrl = document.getElementById('stream_url');
+    if (!streamUrl.value.trim() && '{{ discovery.rtsp_url }}') {
+        streamUrl.value = '{{ discovery.rtsp_url }}';
+    }
+    
+    // Configurar porta baseada no tipo de câmera
+    const cameraType = document.getElementById('camera_type');
+    const port = document.getElementById('port');
+    
+    cameraType.addEventListener('change', function() {
+        if (this.value === 'onvif') {
+            port.value = '80';
+        } else if (this.value === 'rtsp') {
+            port.value = '554';
+        }
+    });
+});
+
+// Validação do formulário
+document.querySelector('form').addEventListener('submit', function(e) {
+    const cameraName = document.getElementById('camera_name').value.trim();
+    const streamUrl = document.getElementById('stream_url').value.trim();
+    
+    if (!cameraName) {
+        e.preventDefault();
+        alert('Por favor, informe um nome para a câmera.');
+        return false;
+    }
+    
+    if (!streamUrl) {
+        e.preventDefault();
+        alert('Por favor, informe a URL do stream.');
+        return false;
+    }
+    
+    if (!streamUrl.startsWith('rtsp://') && !streamUrl.startsWith('http://') && !streamUrl.startsWith('https://')) {
+        e.preventDefault();
+        alert('A URL do stream deve começar com rtsp://, http:// ou https://');
+        return false;
+    }
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,346 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sistema DVR{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+.camera-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.camera-card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.camera-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.camera-placeholder {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #f8f9fc 0%, #e3e6f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #d1d3e2;
+}
+
+.placeholder-content {
+    text-align: center;
+    padding: 1rem;
+}
+
+.camera-status {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-online {
+    background-color: #1cc88a;
+}
+
+.status-offline {
+    background-color: #e74a3b;
+}
+
+.status-error {
+    background-color: #f6c23e;
+}
+
+.status-disconnected {
+    background-color: #858796;
+}
+
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
+}
+</style>
+
+<div class="row">
+    <!-- Estatísticas -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total de Câmeras
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_cameras }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-camera-video fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Câmeras Online
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ online_cameras }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Câmeras Offline
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ offline_cameras }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-x-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Gravações Hoje
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="bi bi-record-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Câmeras ao vivo -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-camera-video"></i>
+                    Câmeras ao Vivo
+                </h6>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success btn-sm" onclick="startMotionDetection()">
+                        <i class="bi bi-play-circle"></i> Iniciar Detecção
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="stopMotionDetection()">
+                        <i class="bi bi-stop-circle"></i> Parar Detecção
+                    </button>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                             aria-labelledby="dropdownMenuLink">
+                            <a class="dropdown-item" href="{% url 'cameras:camera_list' %}">
+                                <i class="bi bi-list"></i> Ver Todas
+                            </a>
+                            <a class="dropdown-item" href="{% url 'cameras:camera_create' %}">
+                                <i class="bi bi-plus"></i> Adicionar Câmera
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if cameras %}
+                <div class="camera-grid">
+                    {% for camera in cameras %}
+                    <div class="camera-card">
+                        <div class="position-relative">
+                            <div class="camera-placeholder" data-camera-id="{{ camera.id }}">
+                                <div class="placeholder-content">
+                                    <i class="bi bi-camera-video-off fa-3x text-muted"></i>
+                                    <p class="text-muted mt-2">Stream não disponível</p>
+                                    <small class="text-muted">Requer autenticação RTSP</small>
+                                </div>
+                            </div>
+                            <div class="camera-status status-{{ camera.status }}"></div>
+                        </div>
+                        <div class="p-3">
+                            <h6 class="mb-1">{{ camera.name }}</h6>
+                            <p class="text-muted small mb-2">{{ camera.ip_address }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-{% if camera.status == 'online' %}success{% elif camera.status == 'offline' %}danger{% else %}warning{% endif %}">
+                                    {{ camera.get_status_display }}
+                                </span>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'cameras:camera_live_view' camera.id %}" 
+                                       class="btn btn-outline-primary">
+                                        <i class="bi bi-play"></i>
+                                    </a>
+                                    <a href="{% url 'cameras:camera_detail' camera.id %}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="bi bi-gear"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-camera-video-off fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhuma câmera configurada</h5>
+                    <p class="text-muted">Adicione sua primeira câmera para começar o monitoramento.</p>
+                    <a href="{% url 'cameras:camera_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus"></i> Adicionar Câmera
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações rápidas -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-lightning"></i>
+                    Ações Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'cameras:camera_create' %}" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i><br>
+                            Adicionar Câmera
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'cameras:camera_discovery' %}" class="btn btn-info w-100">
+                            <i class="bi bi-search"></i><br>
+                            Descobrir Câmeras
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'recordings:recording_list' %}" class="btn btn-success w-100">
+                            <i class="bi bi-record-circle"></i><br>
+                            Ver Gravações
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'recordings:recording_settings' %}" class="btn btn-warning w-100">
+                            <i class="bi bi-gear"></i><br>
+                            Configurações
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Atualizar status das câmeras a cada 30 segundos
+setInterval(function() {
+    // Aqui você pode adicionar AJAX para atualizar o status das câmeras
+    console.log('Atualizando status das câmeras...');
+}, 30000);
+
+// Funções para controle de detecção de movimento
+function startMotionDetection() {
+    if (confirm('Iniciar detecção de movimento para todas as câmeras online?')) {
+        fetch('/cameras/motion-detection/start/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Detecção de movimento iniciada!');
+                location.reload();
+            } else {
+                alert('❌ Erro ao iniciar detecção: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('❌ Erro ao iniciar detecção de movimento');
+        });
+    }
+}
+
+function stopMotionDetection() {
+    if (confirm('Parar detecção de movimento para todas as câmeras?')) {
+        fetch('/cameras/motion-detection/stop/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('🛑 Detecção de movimento parada!');
+                location.reload();
+            } else {
+                alert('❌ Erro ao parar detecção: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('❌ Erro ao parar detecção de movimento');
+        });
+    }
+}
+</script>
+{% endblock %} 
