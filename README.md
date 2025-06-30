@@ -72,6 +72,14 @@ pip install -r requirements.txt
 ```
 
 ### 4. Configure as variáveis de ambiente
+
+#### 💡 Dica: Gere o arquivo `.env` automaticamente
+Você pode gerar um arquivo `.env` padrão automaticamente rodando:
+```bash
+python setup.py
+```
+
+```
 Crie um arquivo `.env` na raiz do projeto:
 ```env
 SECRET_KEY=sua-chave-secreta-aqui
@@ -83,10 +91,6 @@ RECORDINGS_PATH=/path/to/recordings
 MAX_RECORDING_DAYS=30
 ```
 
-#### 💡 Dica: Gere o arquivo `.env` automaticamente
-Você pode gerar um arquivo `.env` padrão automaticamente rodando:
-```bash
-python setup.py
 ```
 Ou, se quiser apenas criar o `.env` sem rodar o setup completo, use este script Python:
 ```python

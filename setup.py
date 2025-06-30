@@ -167,6 +167,32 @@ def create_superuser():
         print("ℹ️  Você pode criar um superusuário depois com: python manage.py createsuperuser")
 
 
+def create_recordings_init():
+    """Garante que recordings/__init__.py existe."""
+    recordings_dir = Path('recordings')
+    init_file = recordings_dir / '__init__.py'
+    if not recordings_dir.exists():
+        print("📁 Criando diretório 'recordings'...")
+        recordings_dir.mkdir(parents=True, exist_ok=True)
+    if not init_file.exists():
+        print("📝 Criando recordings/__init__.py...")
+        init_file.touch()
+        print("✅ recordings/__init__.py criado!")
+    else:
+        print("✅ recordings/__init__.py já existe!")
+
+
+def fix_permissions():
+    """Garante permissões corretas na pasta do projeto."""
+    try:
+        print("🔒 Ajustando permissões da pasta do projeto...")
+        os.system(f'chown -R $USER:$USER {os.getcwd()}')
+        os.system(f'chmod -R 755 {os.getcwd()}')
+        print("✅ Permissões ajustadas!")
+    except Exception as e:
+        print(f"⚠️ Erro ao ajustar permissões: {e}")
+
+
 def main():
     """Função principal do setup"""
     print("🚀 Sistema DVR - Setup")
@@ -181,6 +207,10 @@ def main():
         if input().lower() not in ['s', 'sim', 'y', 'yes']:
             sys.exit(1)
     
+    # Garante que recordings/__init__.py existe
+    create_recordings_init()
+    # Ajusta permissões do projeto
+    fix_permissions()
     # Configuração do projeto
     create_env_file()
     
