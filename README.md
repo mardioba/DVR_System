@@ -54,7 +54,7 @@ Um sistema completo de monitoramento de câmeras IP inspirado no Frigate, desenv
 
 ### 1. Clone o repositório
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/mardioba/DVR_System.git
 cd DVR_System
 ```
 
