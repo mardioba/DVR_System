@@ -234,6 +234,72 @@ Para produção, recomenda-se:
 - Configurar Nginx como proxy reverso
 - Usar Redis Cluster para alta disponibilidade
 
+## 🚀 Deploy com Apache2 (mod_wsgi)
+
+### 1. Instale o Apache2 e o mod_wsgi
+```bash
+sudo apt update
+sudo apt install apache2 libapache2-mod-wsgi-py3
+```
+
+### 2. Configure o VirtualHost do Apache
+Edite ou crie um arquivo de configuração, por exemplo:
+```bash
+sudo nano /etc/apache2/sites-available/dvr_system.conf
+```
+
+Exemplo de configuração:
+```apache
+<VirtualHost *:80>
+    ServerName seu_dominio_ou_ip
+    ServerAdmin webmaster@localhost
+    DocumentRoot /home/mardio/DVR_System
+
+    Alias /static /home/mardio/DVR_System/staticfiles
+    <Directory /home/mardio/DVR_System/staticfiles>
+        Require all granted
+    </Directory>
+
+    Alias /media /home/mardio/DVR_System/media
+    <Directory /home/mardio/DVR_System/media>
+        Require all granted
+    </Directory>
+
+    <Directory /home/mardio/DVR_System/dvr_system>
+        <Files wsgi.py>
+            Require all granted
+        </Files>
+    </Directory>
+
+    WSGIDaemonProcess dvr_system python-home=/home/mardio/DVR_System/venv python-path=/home/mardio/DVR_System
+    WSGIProcessGroup dvr_system
+    WSGIScriptAlias / /home/mardio/DVR_System/dvr_system/wsgi.py
+
+    ErrorLog ${APACHE_LOG_DIR}/dvr_system_error.log
+    CustomLog ${APACHE_LOG_DIR}/dvr_system_access.log combined
+</VirtualHost>
+```
+
+### 3. Ative o site e reinicie o Apache
+```bash
+sudo a2ensite dvr_system.conf
+sudo systemctl reload apache2
+```
+
+### 4. Permissões e arquivos estáticos
+- Certifique-se de que as pastas `staticfiles`, `media` e `recordings` existem e têm permissão de leitura para o usuário do Apache (geralmente `www-data`).
+- Colete os arquivos estáticos:
+```bash
+source venv/bin/activate
+python manage.py collectstatic
+```
+
+### 5. Dicas de produção
+- Use `DEBUG=False` no `.env`.
+- Configure `ALLOWED_HOSTS` corretamente.
+- Use HTTPS em produção (considere o Let's Encrypt).
+- Para Celery/Redis, rode como serviços separados (não pelo Apache).
+
 ## 🐛 Solução de Problemas
 
 ### Câmera não conecta
