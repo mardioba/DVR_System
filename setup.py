@@ -91,6 +91,17 @@ FRAME_RATE=15
         print("✅ Arquivo .env já existe!")
 
 
+def get_venv_python_and_pip():
+    venv_path = Path('venv')
+    if platform.system().lower() == "windows":
+        venv_python = venv_path / 'Scripts' / 'python.exe'
+        venv_pip = venv_path / 'Scripts' / 'pip.exe'
+    else:
+        venv_python = venv_path / 'bin' / 'python'
+        venv_pip = venv_path / 'bin' / 'pip'
+    return str(venv_python), str(venv_pip)
+
+
 def setup_virtual_environment():
     """Configura ambiente virtual"""
     venv_path = Path('venv')
@@ -99,35 +110,29 @@ def setup_virtual_environment():
         print("🔧 Criando ambiente virtual...")
         if not run_command(f'"{python_path}" -m venv venv', 'Criando ambiente virtual'):
             return False
-    # Usar o Python do ambiente atual
-    if not Path(python_path).exists():
-        print("❌ Python não encontrado!")
+    venv_python, _ = get_venv_python_and_pip()
+    if not Path(venv_python).exists():
+        print("❌ Python do venv não encontrado!")
         return False
-    print(f"✅ Ambiente virtual configurado! Usando Python: {python_path}")
+    print(f"✅ Ambiente virtual configurado! Usando Python do venv: {venv_python}")
     return True
 
 
 def install_dependencies():
-    """Instala dependências Python"""
-    # Usar o Python do ambiente atual
-    python_path = sys.executable
-    if platform.system().lower() == "windows":
-        pip_path = Path(python_path).parent / 'pip.exe'
-    else:
-        pip_path = Path(python_path).parent / 'pip'
-    if not run_command(f'"{pip_path}" install -r requirements.txt', 'Instalando dependências'):
+    """Instala dependências Python usando o pip do venv"""
+    _, venv_pip = get_venv_python_and_pip()
+    if not run_command(f'"{venv_pip}" install -r requirements.txt', 'Instalando dependências'):
         return False
     return True
 
 
 def run_django_commands():
-    """Executa comandos Django necessários"""
-    # Usar o Python do ambiente atual
-    python_path = sys.executable
+    """Executa comandos Django necessários usando o Python do venv"""
+    venv_python, _ = get_venv_python_and_pip()
     commands = [
-        (f'"{python_path}" manage.py makemigrations', 'Criando migrações'),
-        (f'"{python_path}" manage.py migrate', 'Executando migrações'),
-        (f'"{python_path}" manage.py collectstatic --noinput', 'Coletando arquivos estáticos'),
+        (f'"{venv_python}" manage.py makemigrations', 'Criando migrações'),
+        (f'"{venv_python}" manage.py migrate', 'Executando migrações'),
+        (f'"{venv_python}" manage.py collectstatic --noinput', 'Coletando arquivos estáticos'),
     ]
     for command, description in commands:
         if not run_command(command, description):
@@ -136,12 +141,11 @@ def run_django_commands():
 
 
 def create_superuser():
-    """Cria superusuário se solicitado"""
+    """Cria superusuário se solicitado usando o Python do venv"""
     response = input("\n🤔 Deseja criar um superusuário agora? (s/n): ").lower()
     if response in ['s', 'sim', 'y', 'yes']:
-        # Usar o Python do ambiente atual
-        python_path = sys.executable
-        run_command(f'"{python_path}" manage.py createsuperuser', 'Criando superusuário')
+        venv_python, _ = get_venv_python_and_pip()
+        run_command(f'"{venv_python}" manage.py createsuperuser', 'Criando superusuário')
     else:
         print("ℹ️  Você pode criar um superusuário depois com: python manage.py createsuperuser")
 
