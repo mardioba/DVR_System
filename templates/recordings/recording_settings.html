@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Configurações de Gravação - Sistema DVR{% endblock %}
+{% block page_title %}Configurações de Gravação{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-gear"></i>
+                    Configurações Globais
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.max_recording_days.id_for_label }}" class="form-label">
+                                    Dias Máximos de Retenção
+                                </label>
+                                {{ form.max_recording_days }}
+                                {% if form.max_recording_days.errors %}
+                                <div class="text-danger">
+                                    {{ form.max_recording_days.errors }}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Após este período, as gravações serão automaticamente excluídas.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.storage_limit_gb.id_for_label }}" class="form-label">
+                                    Limite de Armazenamento (GB)
+                                </label>
+                                {{ form.storage_limit_gb }}
+                                {% if form.storage_limit_gb.errors %}
+                                <div class="text-danger">
+                                    {{ form.storage_limit_gb.errors }}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Quando atingir este limite, as gravações mais antigas serão excluídas.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.auto_delete_enabled }}
+                                    <label class="form-check-label" for="{{ form.auto_delete_enabled.id_for_label }}">
+                                        Exclusão Automática
+                                    </label>
+                                </div>
+                                {% if form.auto_delete_enabled.errors %}
+                                <div class="text-danger">
+                                    {{ form.auto_delete_enabled.errors }}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Habilita a exclusão automática de gravações antigas.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.compression_enabled }}
+                                    <label class="form-check-label" for="{{ form.compression_enabled.id_for_label }}">
+                                        Compressão Habilitada
+                                    </label>
+                                </div>
+                                {% if form.compression_enabled.errors %}
+                                <div class="text-danger">
+                                    {{ form.compression_enabled.errors }}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Comprime as gravações para economizar espaço.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ form.backup_enabled }}
+                                    <label class="form-check-label" for="{{ form.backup_enabled.id_for_label }}">
+                                        Backup Habilitado
+                                    </label>
+                                </div>
+                                {% if form.backup_enabled.errors %}
+                                <div class="text-danger">
+                                    {{ form.backup_enabled.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.backup_path.id_for_label }}" class="form-label">
+                                    Caminho do Backup
+                                </label>
+                                {{ form.backup_path }}
+                                {% if form.backup_path.errors %}
+                                <div class="text-danger">
+                                    {{ form.backup_path.errors }}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Diretório onde as gravações serão copiadas para backup.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'recordings:recording_list' %}" class="btn btn-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> Voltar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="bi bi-info-circle"></i>
+                    Informações de Armazenamento
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary">{{ total_recordings }}</h4>
+                            <small class="text-muted">Total de Gravações</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success">{{ total_size_gb }} GB</h4>
+                        <small class="text-muted">Espaço Utilizado</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="progress mb-3">
+                    {% widthratio total_size_gb storage_limit_gb 100 as usage_percent %}
+                    <div class="progress-bar {% if usage_percent > 80 %}bg-danger{% elif usage_percent > 60 %}bg-warning{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ usage_percent }}%"
+                         aria-valuenow="{{ usage_percent }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ usage_percent }}%
+                    </div>
+                </div>
+                
+                <small class="text-muted">
+                    Limite: {{ storage_limit_gb }} GB
+                </small>
+                
+                {% if usage_percent > 80 %}
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> O armazenamento está quase cheio!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

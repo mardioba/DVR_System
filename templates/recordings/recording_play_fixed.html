@@ -1,0 +1,442 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Visualizar Gravação - {{ recording.file_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .video-container {
+        width: 100%;
+        max-height: 500px;
+        background: #000;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .conversion-status {
+        font-size: 0.9em;
+    }
+    .conversion-pending {
+        color: #856404;
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+    .conversion-converting {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border: 1px solid #bee5eb;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+    .conversion-completed {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+    .conversion-failed {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+    }
+    .player-error {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 20px;
+        text-align: center;
+        border-radius: 8px;
+    }
+    .player-error h4 {
+        color: white;
+        margin-bottom: 20px;
+    }
+    .player-error .btn {
+        margin: 10px;
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Cabeçalho -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-1">
+                        <i class="fas fa-video text-primary"></i>
+                        Visualizar Gravação
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'recordings:recording_list' %}">Gravações</a></li>
+                            <li class="breadcrumb-item active">{{ recording.file_name }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'recordings:recording_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                    {% if recording.converted_file_exists %}
+                        <a href="{% url 'recordings:recording_download_converted' recording.id %}" class="btn btn-success">
+                            <i class="fas fa-download"></i> Baixar H.264
+                        </a>
+                    {% else %}
+                        <a href="{% url 'recordings:recording_download' recording.id %}" class="btn btn-success">
+                            <i class="fas fa-download"></i> Baixar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status da Conversão -->
+            {% if recording.conversion_status != 'completed' %}
+                <div class="conversion-{{ recording.conversion_status }}">
+                    <div class="d-flex align-items-center">
+                        {% if recording.conversion_status == 'pending' %}
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            <div>
+                                <strong>Conversão H.264 Pendente</strong><br>
+                                <small>Este vídeo será convertido automaticamente para H.264 para melhor compatibilidade com navegadores.</small>
+                                <div class="mt-2">
+                                    <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-cog"></i> Converter Agora
+                                    </a>
+                                </div>
+                            </div>
+                        {% elif recording.conversion_status == 'converting' %}
+                            <i class="fas fa-cog fa-spin text-info me-2"></i>
+                            <div>
+                                <strong>Convertendo para H.264...</strong><br>
+                                <small>Aguarde, o vídeo está sendo processado para melhor compatibilidade.</small>
+                            </div>
+                        {% elif recording.conversion_status == 'failed' %}
+                            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                            <div>
+                                <strong>Erro na Conversão H.264</strong><br>
+                                <small>{{ recording.conversion_error|default:"Erro desconhecido na conversão" }}</small>
+                                <div class="mt-2">
+                                    <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-redo"></i> Tentar Novamente
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Informações da Gravação -->
+            <div class="row mb-4">
+                <div class="col-md-8">
+                    <!-- Player de Vídeo -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-play-circle text-primary"></i>
+                                {% if recording.converted_file_exists %}
+                                    {{ recording.converted_file_name }} (H.264)
+                                {% else %}
+                                    {{ recording.file_name }}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if recording.has_playable_video %}
+                                <!-- Player HTML5 nativo -->
+                                <div class="video-container">
+                                    <video controls class="w-100" style="max-height: 500px;" preload="metadata" id="nativePlayer">
+                                        <source src="{% url 'recordings:recording_stream' recording.id %}" type="video/mp4">
+                                        Seu navegador não suporta o elemento de vídeo.
+                                    </video>
+                                </div>
+                                
+                                <!-- Mensagem de incompatibilidade -->
+                                <div id="videoError" class="player-error mt-3" style="display: none;">
+                                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                                    <h4>Vídeo não compatível com navegadores web</h4>
+                                    <p class="mb-4">
+                                        Este vídeo foi gravado com um codec que não é suportado pelos navegadores modernos.
+                                        <br>
+                                        <strong>Navegadores só suportam H.264 e H.265.</strong>
+                                    </p>
+                                    <div class="mb-3">
+                                        <a href="{% url 'recordings:recording_download' recording.id %}" class="btn btn-light">
+                                            <i class="fas fa-download"></i> Baixar Vídeo
+                                        </a>
+                                        {% if recording.conversion_status == 'pending' or recording.conversion_status == 'failed' %}
+                                            <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-warning">
+                                                <i class="fas fa-cog"></i> Converter para H.264
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    <p class="small">
+                                        Após o download, você pode abrir o arquivo com VLC, Windows Media Player, 
+                                        <br>ou qualquer player de vídeo que suporte o codec original.
+                                    </p>
+                                </div>
+                                
+                                <!-- Botão de fallback sempre visível -->
+                                <div class="text-center mt-3">
+                                    <p class="text-muted small">
+                                        <i class="fas fa-info-circle"></i>
+                                        Se o vídeo não reproduzir, baixe e use VLC ou outro player compatível.
+                                    </p>
+                                    <a href="{% url 'recordings:recording_download' recording.id %}" class="btn btn-primary">
+                                        <i class="fas fa-download"></i> Baixar Vídeo para Reproduzir
+                                    </a>
+                                    {% if recording.conversion_status == 'pending' or recording.conversion_status == 'failed' %}
+                                        <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-success ms-2">
+                                            <i class="fas fa-cog"></i> Converter para H.264
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-exclamation-triangle text-warning fa-3x mb-3"></i>
+                                    <h5>Arquivo não encontrado</h5>
+                                    <p class="text-muted">O arquivo de vídeo não está disponível.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <!-- Detalhes da Gravação -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Detalhes da Gravação
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Câmera:</strong></td>
+                                    <td>
+                                        <a href="{% url 'cameras:camera_detail' recording.camera.id %}">
+                                            {{ recording.camera.name }}
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Arquivo Original:</strong></td>
+                                    <td>{{ recording.file_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tamanho Original:</strong></td>
+                                    <td>{{ recording.get_file_size_mb }} MB</td>
+                                </tr>
+                                {% if recording.converted_file_exists %}
+                                <tr>
+                                    <td><strong>Arquivo H.264:</strong></td>
+                                    <td>{{ recording.converted_file_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tamanho H.264:</strong></td>
+                                    <td>{{ recording.get_converted_file_size_mb }} MB</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Duração:</strong></td>
+                                    <td>{{ recording.get_duration_formatted }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tipo:</strong></td>
+                                    <td>
+                                        {% if recording.recording_type == 'motion' %}
+                                            <span class="badge bg-warning">Detecção de Movimento</span>
+                                        {% elif recording.recording_type == 'manual' %}
+                                            <span class="badge bg-primary">Gravação Manual</span>
+                                        {% elif recording.recording_type == 'scheduled' %}
+                                            <span class="badge bg-info">Programada</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ recording.get_recording_type_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Início:</strong></td>
+                                    <td>{{ recording.start_time|date:"d/m/Y H:i:s" }}</td>
+                                </tr>
+                                {% if recording.end_time %}
+                                <tr>
+                                    <td><strong>Fim:</strong></td>
+                                    <td>{{ recording.end_time|date:"d/m/Y H:i:s" }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong>Movimento:</strong></td>
+                                    <td>
+                                        {% if recording.motion_detected %}
+                                            <span class="badge bg-success">Detectado</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Não</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Conversão H.264:</strong></td>
+                                    <td>
+                                        {% if recording.conversion_status == 'completed' %}
+                                            <span class="badge bg-success">Concluída</span>
+                                        {% elif recording.conversion_status == 'converting' %}
+                                            <span class="badge bg-info">Convertendo</span>
+                                        {% elif recording.conversion_status == 'pending' %}
+                                            <span class="badge bg-warning">Pendente</span>
+                                        {% elif recording.conversion_status == 'failed' %}
+                                            <span class="badge bg-danger">Falhou</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-cogs text-secondary"></i>
+                                Ações
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'recordings:recording_download' recording.id %}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-download"></i> Baixar Vídeo
+                                </a>
+                                {% if recording.conversion_status == 'pending' or recording.conversion_status == 'failed' %}
+                                    <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-cog"></i> Converter para H.264
+                                    </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <i class="fas fa-trash"></i> Excluir Gravação
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir esta gravação?</p>
+                <p><strong>{{ recording.file_name }}</strong></p>
+                <p class="text-danger">Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="post" action="{% url 'recordings:recording_delete' recording.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const nativePlayer = document.querySelector('#nativePlayer');
+        const errorDiv = document.querySelector('#videoError');
+        
+        if (nativePlayer) {
+            let hasError = false;
+            let hasLoaded = false;
+            let errorTimeout;
+            
+            // Detectar quando o vídeo carrega com sucesso
+            nativePlayer.addEventListener('loadedmetadata', function() {
+                hasLoaded = true;
+                console.log('✅ Vídeo carregado com sucesso');
+                clearTimeout(errorTimeout);
+            });
+            
+            // Detectar quando o vídeo começa a reproduzir
+            nativePlayer.addEventListener('canplay', function() {
+                console.log('✅ Vídeo pode ser reproduzido');
+                clearTimeout(errorTimeout);
+            });
+            
+            // Detectar erros
+            nativePlayer.addEventListener('error', function(e) {
+                hasError = true;
+                console.log('❌ Erro no vídeo:', e);
+                showCodecMessage();
+            });
+            
+            // Detectar quando o vídeo não consegue reproduzir
+            nativePlayer.addEventListener('stalled', function() {
+                console.log('⚠️ Vídeo travou');
+            });
+            
+            // Detectar quando o vídeo não consegue carregar
+            nativePlayer.addEventListener('suspend', function() {
+                console.log('⚠️ Carregamento do vídeo suspenso');
+            });
+            
+            // Verificar após um tempo se o vídeo carregou
+            errorTimeout = setTimeout(function() {
+                if (!hasLoaded && !hasError) {
+                    console.log('⚠️ Vídeo não carregou em 5 segundos');
+                    showCodecMessage();
+                }
+            }, 5000);
+            
+            // Verificar se o vídeo tem duração válida
+            setTimeout(function() {
+                if (nativePlayer.duration && nativePlayer.duration < 1) {
+                    console.log('⚠️ Vídeo tem duração muito curta, provavelmente incompatível');
+                    showCodecMessage();
+                }
+            }, 3000);
+        }
+        
+        // Mostrar mensagem sobre incompatibilidade de codec
+        function showCodecMessage() {
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+            }
+            if (nativePlayer) {
+                nativePlayer.style.display = 'none';
+            }
+        }
+        
+        // Mostrar a mensagem se não há arquivo convertido (assumindo incompatibilidade)
+        {% if not recording.converted_file_exists %}
+        setTimeout(function() {
+            if (!hasLoaded) {
+                showCodecMessage();
+            }
+        }, 3000);
+        {% endif %}
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Teste de Player - {{ recording.file_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Teste de Player de Vídeo</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Player HTML5 -->
+                            <video controls width="100%" height="400" preload="metadata" id="videoPlayer">
+                                <source src="{% url 'recordings:recording_stream' recording.id %}" type="video/mp4">
+                                Seu navegador não suporta o elemento de vídeo.
+                            </video>
+                            
+                            <!-- Status do Player -->
+                            <div id="playerStatus" class="mt-3">
+                                <div class="alert alert-info">
+                                    <strong>Status:</strong> <span id="statusText">Carregando...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Informações do Vídeo -->
+                            <div id="videoInfo" class="mt-3" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6>Informações do Vídeo</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <table class="table table-sm">
+                                            <tr>
+                                                <td><strong>Duração:</strong></td>
+                                                <td id="duration">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Largura:</strong></td>
+                                                <td id="width">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Altura:</strong></td>
+                                                <td id="height">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Codec:</strong></td>
+                                                <td id="codec">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <!-- Controles de Teste -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6>Controles de Teste</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button class="btn btn-primary" onclick="testPlay()">
+                                            <i class="fas fa-play"></i> Testar Reprodução
+                                        </button>
+                                        <button class="btn btn-info" onclick="testSeek()">
+                                            <i class="fas fa-forward"></i> Testar Seek
+                                        </button>
+                                        <button class="btn btn-warning" onclick="testPause()">
+                                            <i class="fas fa-pause"></i> Testar Pausa
+                                        </button>
+                                        <button class="btn btn-success" onclick="testVolume()">
+                                            <i class="fas fa-volume-up"></i> Testar Volume
+                                        </button>
+                                        <a href="{% url 'recordings:recording_download' recording.id %}" class="btn btn-secondary">
+                                            <i class="fas fa-download"></i> Baixar Vídeo
+                                        </a>
+                                        {% if recording.conversion_status == 'pending' or recording.conversion_status == 'failed' %}
+                                            <a href="{% url 'recordings:recording_convert' recording.id %}" class="btn btn-success">
+                                                <i class="fas fa-cog"></i> Converter para H.264
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Log de Eventos -->
+                            <div class="card mt-3">
+                                <div class="card-header">
+                                    <h6>Log de Eventos</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="eventLog" style="height: 200px; overflow-y: auto; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 5px;">
+                                        <!-- Logs aparecerão aqui -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const video = document.getElementById('videoPlayer');
+    const statusText = document.getElementById('statusText');
+    const videoInfo = document.getElementById('videoInfo');
+    const eventLog = document.getElementById('eventLog');
+    
+    function log(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        eventLog.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        eventLog.scrollTop = eventLog.scrollHeight;
+        console.log(message);
+    }
+    
+    function updateStatus(status) {
+        statusText.textContent = status;
+        log(`Status: ${status}`);
+    }
+    
+    // Eventos do vídeo
+    video.addEventListener('loadstart', () => {
+        updateStatus('Iniciando carregamento...');
+        log('Evento: loadstart');
+    });
+    
+    video.addEventListener('durationchange', () => {
+        updateStatus('Duração carregada');
+        log(`Evento: durationchange - Duração: ${video.duration}s`);
+        document.getElementById('duration').textContent = `${video.duration.toFixed(2)}s`;
+    });
+    
+    video.addEventListener('loadedmetadata', () => {
+        updateStatus('Metadados carregados');
+        log(`Evento: loadedmetadata - ${video.videoWidth}x${video.videoHeight}`);
+        document.getElementById('width').textContent = video.videoWidth;
+        document.getElementById('height').textContent = video.videoHeight;
+        videoInfo.style.display = 'block';
+    });
+    
+    video.addEventListener('loadeddata', () => {
+        updateStatus('Dados carregados');
+        log('Evento: loadeddata');
+    });
+    
+    video.addEventListener('canplay', () => {
+        updateStatus('Pode reproduzir');
+        log('Evento: canplay');
+    });
+    
+    video.addEventListener('canplaythrough', () => {
+        updateStatus('Pode reproduzir completamente');
+        log('Evento: canplaythrough');
+    });
+    
+    video.addEventListener('play', () => {
+        updateStatus('Reproduzindo');
+        log('Evento: play');
+    });
+    
+    video.addEventListener('pause', () => {
+        updateStatus('Pausado');
+        log('Evento: pause');
+    });
+    
+    video.addEventListener('seeking', () => {
+        updateStatus('Buscando...');
+        log('Evento: seeking');
+    });
+    
+    video.addEventListener('seeked', () => {
+        updateStatus('Busca concluída');
+        log('Evento: seeked');
+    });
+    
+    video.addEventListener('waiting', () => {
+        updateStatus('Aguardando dados...');
+        log('Evento: waiting');
+    });
+    
+    video.addEventListener('stalled', () => {
+        updateStatus('Travado');
+        log('Evento: stalled');
+    });
+    
+    video.addEventListener('suspend', () => {
+        updateStatus('Suspenso');
+        log('Evento: suspend');
+    });
+    
+    video.addEventListener('error', (e) => {
+        updateStatus('Erro no vídeo');
+        log(`Evento: error - ${e.message || 'Erro desconhecido'}`);
+        console.error('Erro do vídeo:', e);
+    });
+    
+    video.addEventListener('abort', () => {
+        updateStatus('Carregamento abortado');
+        log('Evento: abort');
+    });
+    
+    // Funções de teste
+    function testPlay() {
+        log('Teste: Tentando reproduzir');
+        video.play().then(() => {
+            log('Teste: Reprodução iniciada com sucesso');
+        }).catch(error => {
+            log(`Teste: Erro ao reproduzir - ${error.message}`);
+        });
+    }
+    
+    function testSeek() {
+        log('Teste: Tentando seek para 30s');
+        video.currentTime = 30;
+    }
+    
+    function testPause() {
+        log('Teste: Pausando vídeo');
+        video.pause();
+    }
+    
+    function testVolume() {
+        log('Teste: Ajustando volume');
+        video.volume = 0.5;
+    }
+    
+    // Inicialização
+    log('Player inicializado');
+    updateStatus('Aguardando carregamento...');
+</script>
+{% endblock %} 

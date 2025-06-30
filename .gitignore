@@ -2,12 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
+.Python
 
 # C extensions
 *.so
 
 # Distribution / packaging
-.Python
 build/
 develop-eggs/
 dist/
@@ -135,7 +135,7 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
-recordings/
+# recordings/
 
 # IDE
 .vscode/
@@ -154,10 +154,9 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-recordings/
-*.mp4
-*.avi
-*.mkv
-*.mov
+recordings/*.mp4
+recordings/*.avi
+recordings/*.mkv
+recordings/*.mov
 .env.local
 .env.production 

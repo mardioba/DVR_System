@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+
+{% block title %}Gravações - Sistema DVR{% endblock %}
+{% block page_title %}Gravações{% endblock %}
+
+{% block content %}
+<!-- Formulário invisível para CSRF -->
+<form id="bulkDeleteForm" style="display:none;">{% csrf_token %}</form>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+        <h6 class="m-0 font-weight-bold text-white">
+            <i class="bi bi-record-circle"></i>
+            Lista de Gravações
+        </h6>
+        <div>
+            <a href="{% url 'recordings:recording_statistics' %}" class="btn btn-info btn-sm me-2">
+                <i class="bi bi-graph-up"></i> Estatísticas
+            </a>
+            <a href="{% url 'recordings:recording_settings' %}" class="btn btn-warning btn-sm">
+                <i class="bi bi-gear"></i> Configurações
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Filtros -->
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Câmera</label>
+                <select name="camera" class="form-select">
+                    <option value="">Todas as câmeras</option>
+                    {% for camera in cameras %}
+                    <option value="{{ camera.id }}" {% if request.GET.camera == camera.id|stringformat:"s" %}selected{% endif %}>
+                        {{ camera.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tipo</label>
+                <select name="type" class="form-select">
+                    <option value="">Todos os tipos</option>
+                    <option value="motion" {% if request.GET.type == 'motion' %}selected{% endif %}>Detecção de Movimento</option>
+                    <option value="manual" {% if request.GET.type == 'manual' %}selected{% endif %}>Gravação Manual</option>
+                    <option value="scheduled" {% if request.GET.type == 'scheduled' %}selected{% endif %}>Programada</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Data Início</label>
+                <input type="date" name="date_from" class="form-control" value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Data Fim</label>
+                <input type="date" name="date_to" class="form-control" value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Estatísticas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Total de Gravações</h5>
+                        <h3>{{ total_recordings }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Espaço Utilizado</h5>
+                        <h3>{{ total_size_gb }} GB</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Média por Câmera</h5>
+                        <h3>{{ total_recordings|default:0|add:0|floatformat:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-bordered" id="recordingsTable">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="selectAll">
+                        </th>
+                        <th>Câmera</th>
+                        <th>Arquivo</th>
+                        <th>Tipo</th>
+                        <th>Duração</th>
+                        <th>Tamanho</th>
+                        <th>Data</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recording in page_obj %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="recordings" value="{{ recording.id }}" class="recording-checkbox">
+                        </td>
+                        <td>
+                            <strong>{{ recording.camera.name }}</strong>
+                            {% if recording.motion_detected %}
+                            <br><span class="badge bg-danger">Movimento</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ recording.file_name }}</td>
+                        <td>
+                            <span class="badge bg-{% if recording.recording_type == 'motion' %}danger{% elif recording.recording_type == 'manual' %}primary{% else %}secondary{% endif %}">
+                                {{ recording.get_recording_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ recording.get_duration_formatted }}</td>
+                        <td>{{ recording.get_file_size_mb }} MB</td>
+                        <td>{{ recording.start_time|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'recordings:recording_play' recording.id %}" 
+                                   class="btn btn-outline-primary" title="Reproduzir">
+                                    <i class="bi bi-play"></i>
+                                </a>
+                                <a href="{% url 'recordings:recording_download' recording.id %}" 
+                                   class="btn btn-outline-success" title="Download">
+                                    <i class="bi bi-download"></i>
+                                </a>
+                                <a href="{% url 'recordings:recording_detail' recording.id %}" 
+                                   class="btn btn-outline-info" title="Detalhes">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'recordings:recording_delete' recording.id %}" 
+                                   class="btn btn-outline-danger" title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Navegação de páginas">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}">Anterior</a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}">Próximo</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <!-- Ações em lote -->
+        <div class="mt-3">
+            <button type="button" class="btn btn-danger" onclick="deleteSelected()">
+                <i class="bi bi-trash"></i> Excluir Selecionados
+            </button>
+        </div>
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="bi bi-record-circle fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhuma gravação encontrada</h5>
+            <p class="text-muted">As gravações aparecerão aqui quando forem criadas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Selecionar todos
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.recording-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Excluir selecionados
+function deleteSelected() {
+    const selected = document.querySelectorAll('.recording-checkbox:checked');
+    if (selected.length === 0) {
+        alert('Selecione pelo menos uma gravação para excluir.');
+        return;
+    }
+    
+    if (confirm(`Tem certeza que deseja excluir ${selected.length} gravação(ões)?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "recordings:recording_bulk_delete" %}';
+        
+        // Pegar o token CSRF do form invisível
+        const csrfToken = document.querySelector('#bulkDeleteForm [name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Adicionar os IDs das gravações selecionadas
+        selected.forEach(checkbox => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'recordings';
+            input.value = checkbox.value;
+            form.appendChild(input);
+        });
+        
+        // Submeter o formulário
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Atualizar checkbox "selecionar todos" baseado nos checkboxes individuais
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('recording-checkbox')) {
+        const allCheckboxes = document.querySelectorAll('.recording-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.recording-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        
+        if (checkedCheckboxes.length === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (checkedCheckboxes.length === allCheckboxes.length) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+        }
+    }
+});
+</script>
+{% endblock %} 
