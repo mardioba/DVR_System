@@ -2,7 +2,7 @@
 """
 Script de setup para o Sistema DVR
 """
-
+# Teste
 import os
 import sys
 import subprocess
