@@ -167,10 +167,11 @@ def create_superuser():
         print("ℹ️  Você pode criar um superusuário depois com: python manage.py createsuperuser")
 
 
-def create_recordings_init():
-    """Garante que recordings/__init__.py existe."""
+def create_recordings_files():
+    """Garante que recordings/__init__.py e recordings/models.py existem."""
     recordings_dir = Path('recordings')
     init_file = recordings_dir / '__init__.py'
+    models_file = recordings_dir / 'models.py'
     if not recordings_dir.exists():
         print("📁 Criando diretório 'recordings'...")
         recordings_dir.mkdir(parents=True, exist_ok=True)
@@ -180,6 +181,12 @@ def create_recordings_init():
         print("✅ recordings/__init__.py criado!")
     else:
         print("✅ recordings/__init__.py já existe!")
+    if not models_file.exists():
+        print("📝 Criando recordings/models.py...")
+        models_file.touch()
+        print("✅ recordings/models.py criado!")
+    else:
+        print("✅ recordings/models.py já existe!")
 
 
 def fix_permissions():
@@ -207,8 +214,8 @@ def main():
         if input().lower() not in ['s', 'sim', 'y', 'yes']:
             sys.exit(1)
     
-    # Garante que recordings/__init__.py existe
-    create_recordings_init()
+    # Garante que recordings/__init__.py e models.py existem
+    create_recordings_files()
     # Ajusta permissões do projeto
     fix_permissions()
     # Configuração do projeto
