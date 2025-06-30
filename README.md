@@ -83,6 +83,42 @@ RECORDINGS_PATH=/path/to/recordings
 MAX_RECORDING_DAYS=30
 ```
 
+#### 💡 Dica: Gere o arquivo `.env` automaticamente
+Você pode gerar um arquivo `.env` padrão automaticamente rodando:
+```bash
+python setup.py
+```
+Ou, se quiser apenas criar o `.env` sem rodar o setup completo, use este script Python:
+```python
+from pathlib import Path
+
+env_file = Path('.env')
+if not env_file.exists():
+    print("📝 Criando arquivo .env...")
+    env_content = """# Configurações do Sistema DVR
+SECRET_KEY=django-insecure-change-this-in-production
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Celery/REDIS
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# DVR Settings
+RECORDINGS_PATH=./recordings
+MAX_RECORDING_DAYS=30
+MOTION_DETECTION_SENSITIVITY=0.3
+RECORDING_DURATION=30
+MOTION_TIMEOUT=4
+MOTION_START_DELAY=10
+FRAME_RATE=15
+"""
+    with open(env_file, 'w') as f:
+        f.write(env_content)
+    print("✅ Arquivo .env criado!")
+else:
+    print("✅ Arquivo .env já existe!")
+
 ### 5. Execute as migrações
 ```bash
 python manage.py makemigrations

@@ -157,6 +157,7 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # DVR System specific settings
 DVR_SETTINGS = {
+    # Use sempre um caminho dentro do projeto ou um caminho absoluto com permissão de escrita
     'RECORDINGS_PATH': config('RECORDINGS_PATH', default=str(BASE_DIR / 'recordings')),
     'MAX_RECORDING_DAYS': config('MAX_RECORDING_DAYS', default=30, cast=int),
     'MOTION_DETECTION_SENSITIVITY': config('MOTION_DETECTION_SENSITIVITY', default=0.3, cast=float),
@@ -168,7 +169,11 @@ DVR_SETTINGS = {
     'AUDIO_CODEC': 'aac',
 }
 
-# Create directories if they don't exist
-os.makedirs(DVR_SETTINGS['RECORDINGS_PATH'], exist_ok=True)
+# Crie o diretório de gravações apenas se for um caminho relativo ou se tiver permissão
+try:
+    os.makedirs(DVR_SETTINGS['RECORDINGS_PATH'], exist_ok=True)
+except PermissionError:
+    print(f"[ERRO] Sem permissão para criar o diretório de gravações em {DVR_SETTINGS['RECORDINGS_PATH']}. Altere RECORDINGS_PATH para um local com permissão de escrita.")
+    raise
 os.makedirs(MEDIA_ROOT, exist_ok=True)
 os.makedirs(STATIC_ROOT, exist_ok=True) 
