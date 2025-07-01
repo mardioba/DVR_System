@@ -2,7 +2,6 @@
 """
 Script de setup para o Sistema DVR
 """
-# Teste
 import os
 import sys
 import subprocess
@@ -45,10 +44,10 @@ def check_ffmpeg():
             return True
     except FileNotFoundError:
         pass
-    
+
     print("❌ FFmpeg não encontrado!")
     print("📋 Instale o FFmpeg:")
-    
+
     system = platform.system().lower()
     if system == "linux":
         print("  Ubuntu/Debian: sudo apt update && sudo apt install ffmpeg")
@@ -57,7 +56,7 @@ def check_ffmpeg():
         print("  macOS: brew install ffmpeg")
     elif system == "windows":
         print("  Windows: Baixe de https://ffmpeg.org/download.html")
-    
+
     return False
 
 
@@ -183,38 +182,64 @@ def fix_permissions():
         print(f"⚠️ Erro ao ajustar permissões: {e}")
 
 
+def install_mariadb_and_create_db():
+    """Instala o MariaDB e cria o banco de dados e usuário"""
+    print("🛠️ Instalando MariaDB e configurando banco de dados...")
+
+    install_cmd = "sudo apt update && sudo apt install mariadb-server -y"
+    if not run_command(install_cmd, "Instalando MariaDB"):
+        return False
+
+    print("🔐 Criando banco de dados e usuário...")
+    db_commands = """
+CREATE DATABASE IF NOT EXISTS monitoramento CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER IF NOT EXISTS 'monit'@'localhost' IDENTIFIED BY 'monit123';
+GRANT ALL PRIVILEGES ON monitoramento.* TO 'monit'@'localhost';
+FLUSH PRIVILEGES;
+"""
+
+    with open("db_setup.sql", "w") as f:
+        f.write(db_commands)
+
+    if not run_command("sudo mariadb < db_setup.sql", "Configurando banco de dados MariaDB"):
+        return False
+
+    os.remove("db_setup.sql")
+    print("✅ Banco de dados 'monitoramento' e usuário 'monit' configurados com sucesso!")
+    return True
+
+
 def main():
     """Função principal do setup"""
     print("🚀 Sistema DVR - Setup")
     print("=" * 50)
-    
-    # Verificações iniciais
+
     if not check_python_version():
         sys.exit(1)
-    
+
+    if not install_mariadb_and_create_db():
+        sys.exit(1)
+
     if not check_ffmpeg():
         print("⚠️  Continue sem FFmpeg? (s/n): ", end="")
         if input().lower() not in ['s', 'sim', 'y', 'yes']:
             sys.exit(1)
-    
-    # Garante que recordings/__init__.py e models.py existem
+
     create_recordings_files()
-    # Ajusta permissões do projeto
     fix_permissions()
-    # Configuração do projeto
     create_env_file()
-    
+
     if not setup_virtual_environment():
         sys.exit(1)
-    
+
     if not install_dependencies():
         sys.exit(1)
-    
+
     if not run_django_commands():
         sys.exit(1)
-    
+
     create_superuser()
-    
+
     print("\n🎉 Setup concluído com sucesso!")
     print("\n📋 Próximos passos:")
     print("1. Inicie o Redis: redis-server")
@@ -225,4 +250,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
