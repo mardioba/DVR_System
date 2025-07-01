@@ -12,7 +12,10 @@ from pathlib import Path
 def run_command(command, description):
     print(f"🔄 {description}...")
     try:
-        subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        if isinstance(command, str):
+            subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        else:
+            subprocess.run(command, check=True, capture_output=True, text=True)
         print(f"✅ {description} concluído!")
         return True
     except subprocess.CalledProcessError as e:
@@ -49,7 +52,7 @@ def install_redis():
 
 def install_celery():
     _, venv_pip = get_venv_python_and_pip()
-    return run_command(f'"{venv_pip}" install celery', "Instalando Celery via pip")
+    return run_command([venv_pip, "install", "celery"], "Instalando Celery via pip")
 
 
 def install_mariadb_and_create_db():
@@ -130,7 +133,7 @@ def setup_virtual_environment():
     python_path = sys.executable
     if not venv_path.exists():
         print("🔧 Criando ambiente virtual...")
-        if not run_command(f'"{python_path}" -m venv venv', 'Criando ambiente virtual'):
+        if not run_command([python_path, "-m", "venv", "venv"], 'Criando ambiente virtual'):
             return False
     venv_python, _ = get_venv_python_and_pip()
     if not Path(venv_python).exists():
@@ -142,17 +145,15 @@ def setup_virtual_environment():
 
 def install_dependencies():
     _, venv_pip = get_venv_python_and_pip()
-    return run_command(f'"{venv_pip}" install -r requirements.txt', 'Instalando dependências')
+    return run_command([venv_pip, "install", "-r", "requirements.txt"], 'Instalando dependências')
 
 
 def run_django_commands():
     venv_python, _ = get_venv_python_and_pip()
-    venv_pythonN, venv_pip = get_venv_python_and_pip()
-    subprocess.run(f'"{venv_pythonN}" manage.py migrate', shell=True)
     commands = [
-        (f'"python manage.py makemigrations', 'Criando migrações'),
-        (f'"python manage.py migrate', 'Executando migrações'),
-        (f'"python manage.py collectstatic --noinput', 'Coletando arquivos estáticos'),
+        ([venv_python, "manage.py", "makemigrations"], 'Criando migrações'),
+        ([venv_python, "manage.py", "migrate"], 'Executando migrações'),
+        ([venv_python, "manage.py", "collectstatic", "--noinput"], 'Coletando arquivos estáticos'),
     ]
     for command, description in commands:
         if not run_command(command, description):
@@ -164,7 +165,7 @@ def create_superuser():
     resp = input("\n🤔 Deseja criar um superusuário agora? (s/n): ").lower()
     if resp in ['s', 'sim', 'y', 'yes']:
         venv_python, _ = get_venv_python_and_pip()
-        run_command(f'"{venv_python}" manage.py createsuperuser', 'Criando superusuário')
+        run_command([venv_python, "manage.py", "createsuperuser"], 'Criando superusuário')
 
 
 def create_recordings_files():
