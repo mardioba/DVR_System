@@ -147,10 +147,12 @@ def install_dependencies():
 
 def run_django_commands():
     venv_python, _ = get_venv_python_and_pip()
+    venv_pythonN, venv_pip = get_venv_python_and_pip()
+    subprocess.run(f'"{venv_pythonN}" manage.py migrate', shell=True)
     commands = [
-        (f'"{venv_python}" manage.py makemigrations', 'Criando migrações'),
-        (f'"{venv_python}" manage.py migrate', 'Executando migrações'),
-        (f'"{venv_python}" manage.py collectstatic --noinput', 'Coletando arquivos estáticos'),
+        (f'"python manage.py makemigrations', 'Criando migrações'),
+        (f'"python manage.py migrate', 'Executando migrações'),
+        (f'"python manage.py collectstatic --noinput', 'Coletando arquivos estáticos'),
     ]
     for command, description in commands:
         if not run_command(command, description):
