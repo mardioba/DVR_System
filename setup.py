@@ -10,10 +10,9 @@ from pathlib import Path
 
 
 def run_command(command, description):
-    """Executa um comando e mostra o progresso"""
     print(f"🔄 {description}...")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         print(f"✅ {description} concluído!")
         return True
     except subprocess.CalledProcessError as e:
@@ -24,7 +23,6 @@ def run_command(command, description):
 
 
 def check_python_version():
-    """Verifica se a versão do Python é compatível"""
     print("🐍 Verificando versão do Python...")
     version = sys.version_info
     if version.major < 3 or (version.major == 3 and version.minor < 8):
@@ -34,34 +32,60 @@ def check_python_version():
     return True
 
 
-def check_ffmpeg():
-    """Verifica se o FFmpeg está instalado"""
+def install_ffmpeg_if_needed():
     print("🎬 Verificando FFmpeg...")
     try:
-        result = subprocess.run(['ffmpeg', '-version'], capture_output=True, text=True)
-        if result.returncode == 0:
-            print("✅ FFmpeg encontrado!")
-            return True
-    except FileNotFoundError:
-        pass
+        subprocess.run(['ffmpeg', '-version'], capture_output=True, check=True)
+        print("✅ FFmpeg já está instalado!")
+        return True
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        print("❌ FFmpeg não encontrado.")
+        return run_command("sudo apt install -y ffmpeg", "Instalando FFmpeg")
 
-    print("❌ FFmpeg não encontrado!")
-    print("📋 Instale o FFmpeg:")
 
-    system = platform.system().lower()
-    if system == "linux":
-        print("  Ubuntu/Debian: sudo apt update && sudo apt install ffmpeg")
-        print("  CentOS/RHEL: sudo yum install ffmpeg")
-    elif system == "darwin":
-        print("  macOS: brew install ffmpeg")
-    elif system == "windows":
-        print("  Windows: Baixe de https://ffmpeg.org/download.html")
+def install_redis():
+    return run_command("sudo apt install -y redis-server", "Instalando Redis")
 
-    return False
+
+def install_celery():
+    _, venv_pip = get_venv_python_and_pip()
+    return run_command(f'"{venv_pip}" install celery', "Instalando Celery via pip")
+
+
+def install_mariadb_and_create_db():
+    print("🛠️ Instalando MariaDB e configurando banco de dados...")
+    if not run_command("sudo apt update && sudo apt install -y mariadb-server", "Instalando MariaDB"):
+        return False
+
+    db_commands = """
+CREATE DATABASE IF NOT EXISTS monitoramento CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE USER IF NOT EXISTS 'monit'@'localhost' IDENTIFIED BY 'monit123';
+GRANT ALL PRIVILEGES ON monitoramento.* TO 'monit'@'localhost';
+FLUSH PRIVILEGES;
+"""
+    with open("db_setup.sql", "w") as f:
+        f.write(db_commands)
+
+    if not run_command("sudo mariadb < db_setup.sql", "Configurando banco de dados MariaDB"):
+        return False
+
+    os.remove("db_setup.sql")
+    return True
+
+
+def install_system_dependencies():
+    print("🔧 Instalando dependências do sistema para mysqlclient...")
+    packages = [
+        "pkg-config",
+        "libmariadb-dev",
+        "default-libmysqlclient-dev",
+        "build-essential",
+        "python3-dev"
+    ]
+    return run_command(f"sudo apt install -y {' '.join(packages)}", "Instalando dependências do sistema")
 
 
 def create_env_file():
-    """Cria arquivo .env se não existir"""
     env_file = Path('.env')
     if not env_file.exists():
         print("📝 Criando arquivo .env...")
@@ -102,7 +126,6 @@ def get_venv_python_and_pip():
 
 
 def setup_virtual_environment():
-    """Configura ambiente virtual"""
     venv_path = Path('venv')
     python_path = sys.executable
     if not venv_path.exists():
@@ -118,15 +141,11 @@ def setup_virtual_environment():
 
 
 def install_dependencies():
-    """Instala dependências Python usando o pip do venv"""
     _, venv_pip = get_venv_python_and_pip()
-    if not run_command(f'"{venv_pip}" install -r requirements.txt', 'Instalando dependências'):
-        return False
-    return True
+    return run_command(f'"{venv_pip}" install -r requirements.txt', 'Instalando dependências')
 
 
 def run_django_commands():
-    """Executa comandos Django necessários usando o Python do venv"""
     venv_python, _ = get_venv_python_and_pip()
     commands = [
         (f'"{venv_python}" manage.py makemigrations', 'Criando migrações'),
@@ -140,39 +159,20 @@ def run_django_commands():
 
 
 def create_superuser():
-    """Cria superusuário se solicitado usando o Python do venv"""
-    response = input("\n🤔 Deseja criar um superusuário agora? (s/n): ").lower()
-    if response in ['s', 'sim', 'y', 'yes']:
+    resp = input("\n🤔 Deseja criar um superusuário agora? (s/n): ").lower()
+    if resp in ['s', 'sim', 'y', 'yes']:
         venv_python, _ = get_venv_python_and_pip()
         run_command(f'"{venv_python}" manage.py createsuperuser', 'Criando superusuário')
-    else:
-        print("ℹ️  Você pode criar um superusuário depois com: python manage.py createsuperuser")
 
 
 def create_recordings_files():
-    """Garante que recordings/__init__.py e recordings/models.py existem."""
     recordings_dir = Path('recordings')
-    init_file = recordings_dir / '__init__.py'
-    models_file = recordings_dir / 'models.py'
-    if not recordings_dir.exists():
-        print("📁 Criando diretório 'recordings'...")
-        recordings_dir.mkdir(parents=True, exist_ok=True)
-    if not init_file.exists():
-        print("📝 Criando recordings/__init__.py...")
-        init_file.touch()
-        print("✅ recordings/__init__.py criado!")
-    else:
-        print("✅ recordings/__init__.py já existe!")
-    if not models_file.exists():
-        print("📝 Criando recordings/models.py...")
-        models_file.touch()
-        print("✅ recordings/models.py criado!")
-    else:
-        print("✅ recordings/models.py já existe!")
+    recordings_dir.mkdir(parents=True, exist_ok=True)
+    (recordings_dir / '__init__.py').touch(exist_ok=True)
+    (recordings_dir / 'models.py').touch(exist_ok=True)
 
 
 def fix_permissions():
-    """Garante permissões corretas na pasta do projeto."""
     try:
         print("🔒 Ajustando permissões da pasta do projeto...")
         os.system(f'chown -R $USER:$USER {os.getcwd()}')
@@ -182,35 +182,7 @@ def fix_permissions():
         print(f"⚠️ Erro ao ajustar permissões: {e}")
 
 
-def install_mariadb_and_create_db():
-    """Instala o MariaDB e cria o banco de dados e usuário"""
-    print("🛠️ Instalando MariaDB e configurando banco de dados...")
-
-    install_cmd = "sudo apt update && sudo apt install mariadb-server -y"
-    if not run_command(install_cmd, "Instalando MariaDB"):
-        return False
-
-    print("🔐 Criando banco de dados e usuário...")
-    db_commands = """
-CREATE DATABASE IF NOT EXISTS monitoramento CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE USER IF NOT EXISTS 'monit'@'localhost' IDENTIFIED BY 'monit123';
-GRANT ALL PRIVILEGES ON monitoramento.* TO 'monit'@'localhost';
-FLUSH PRIVILEGES;
-"""
-
-    with open("db_setup.sql", "w") as f:
-        f.write(db_commands)
-
-    if not run_command("sudo mariadb < db_setup.sql", "Configurando banco de dados MariaDB"):
-        return False
-
-    os.remove("db_setup.sql")
-    print("✅ Banco de dados 'monitoramento' e usuário 'monit' configurados com sucesso!")
-    return True
-
-
 def main():
-    """Função principal do setup"""
     print("🚀 Sistema DVR - Setup")
     print("=" * 50)
 
@@ -220,10 +192,14 @@ def main():
     if not install_mariadb_and_create_db():
         sys.exit(1)
 
-    if not check_ffmpeg():
-        print("⚠️  Continue sem FFmpeg? (s/n): ", end="")
-        if input().lower() not in ['s', 'sim', 'y', 'yes']:
-            sys.exit(1)
+    if not install_system_dependencies():
+        sys.exit(1)
+
+    if not install_ffmpeg_if_needed():
+        sys.exit(1)
+
+    if not install_redis():
+        sys.exit(1)
 
     create_recordings_files()
     fix_permissions()
@@ -235,6 +211,9 @@ def main():
     if not install_dependencies():
         sys.exit(1)
 
+    if not install_celery():
+        sys.exit(1)
+
     if not run_django_commands():
         sys.exit(1)
 
@@ -242,11 +221,10 @@ def main():
 
     print("\n🎉 Setup concluído com sucesso!")
     print("\n📋 Próximos passos:")
-    print("1. Inicie o Redis: redis-server")
-    print("2. Inicie o Celery: celery -A dvr_system worker -l info")
-    print("3. Inicie o servidor: python manage.py runserver")
+    print("1. Inicie o Redis: `redis-server`")
+    print("2. Inicie o Celery: `celery -A dvr_system worker -l info`")
+    print("3. Inicie o servidor Django: `python manage.py runserver`")
     print("4. Acesse: http://localhost:8000")
-    print("\n📖 Consulte o README.md para mais informações!")
 
 
 if __name__ == "__main__":
